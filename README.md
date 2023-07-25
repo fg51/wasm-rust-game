@@ -23,3 +23,31 @@ dyn_into cast from the static type of RUST to the dynamic type of JAVASCRIPT
 
 ### get_context
 get-context() -> Result<Option<Object>>
+
+
+## 2. trunk
+
+```sh
+$ cargo install --locked trunk
+$ trunk --serve
+```
+
+```html
+<html>
+  <head>
+    <link data-trunk rel="rust" data-wasm-opt="z">
+  </head>
+</html>
+```
+
+## 3. log 
+
+```sh
+$ cargo add log wasm-logger
+```
+
+
+```rust
+wasm_logger::init(wasm_logger::Config::default());
+log::debug!("Hello, world!");
+```
