@@ -8,6 +8,7 @@ use wasm_bindgen::JsCast;
 use rand::prelude::{thread_rng, Rng};
 
 pub mod browser;
+pub mod engine;
 
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
