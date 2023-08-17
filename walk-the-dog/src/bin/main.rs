@@ -9,6 +9,8 @@ use wasm_bindgen::JsCast;
 use serde::Deserialize;
 use std::collections::HashMap;
 
+use walk_the_dog as lib;
+
 // When the `wee_alloc` feature is enabled, this uses `wee_alloc` as the global
 // allocator.
 //
@@ -16,6 +18,7 @@ use std::collections::HashMap;
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 
 pub fn main() -> Result<(), JsValue> {
     #[cfg(debug_assertions)]
@@ -26,7 +29,9 @@ pub fn main() -> Result<(), JsValue> {
     // Your code goes here!
     log::debug!("Hello world!");
 
-    let window = web_sys::window().unwrap();
+    //let window = web_sys::window().unwrap();
+    let window = lib::browser::window().expect("No Window Found");
+
     let document = window.document().unwrap();
     let canvas = document
         .get_element_by_id("canvas")
