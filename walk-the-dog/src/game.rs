@@ -23,9 +23,7 @@ pub struct WalkTheDog {
 
 impl WalkTheDog {
     pub fn new() -> Self {
-        Self {
-            rhb: None,
-        }
+        Self { rhb: None }
     }
 }
 
@@ -48,7 +46,7 @@ impl Game for WalkTheDog {
     fn update(&mut self, keystate: &KeyState) {
         let mut velocity = Point { x: 0, y: 0 };
         if keystate.is_pressed("ArrowDown") {
-            velocity.y += 3;
+            self.rhb.as_mut().unwrap().slide();
         }
         if keystate.is_pressed("ArrowUp") {
             velocity.y -= 3;
@@ -145,5 +143,9 @@ impl RedHatBoy {
 
     fn run_right(&mut self) {
         self.state_machine = self.state_machine.transition(Event::Run);
+    }
+
+    fn slide(&mut self) {
+        self.state_machine = self.state_machine.transition(Event::Slide);
     }
 }
