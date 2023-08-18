@@ -9,8 +9,13 @@ readme = "README.md"
 edition = "2021"
 publish = false
 
-[lib]
-crate-type = ["cdylib"]
+# comment out for trunk
+# [lib]
+# crate-type = ["cdylib"]
+
+# [[bin]]
+# name = "main"
+# path = "src/bin/main.rs"
 
 [profile.release]
 # This makes the compiled code faster and smaller, but it makes compiling slower,
