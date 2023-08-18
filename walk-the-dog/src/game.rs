@@ -17,6 +17,8 @@ use crate::{browser, engine};
 mod red_hat_boy_states;
 use red_hat_boy_states::{Event, RedHatBoyState, RedHatBoyStateMachine};
 
+const HEIGHT: i16 = 600;
+
 pub enum WalkTheDog {
     Loading,
     Loaded(RedHatBoy),
@@ -61,6 +63,9 @@ impl Game for WalkTheDog {
             }
             if keystate.is_pressed("ArrowLeft") {
                 velocity.x -= 3;
+            }
+            if keystate.is_pressed("Space") {
+                rhb.jump();
             }
 
             rhb.update();
@@ -154,5 +159,9 @@ impl RedHatBoy {
 
     fn slide(&mut self) {
         self.state_machine = self.state_machine.transition(Event::Slide);
+    }
+
+    fn jump(&mut self) {
+        self.state_machine = self.state_machine.transition(Event::Jump);
     }
 }
