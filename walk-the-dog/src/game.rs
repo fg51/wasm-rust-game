@@ -15,23 +15,15 @@ use crate::engine::{KeyState, Point};
 use crate::{browser, engine};
 
 mod red_hat_boy_states;
-use red_hat_boy_states::{RedHatBoyState, RedHatBoyStateMachine};
+use red_hat_boy_states::{Event, RedHatBoyState, RedHatBoyStateMachine};
 
 pub struct WalkTheDog {
-    image: Option<HtmlImageElement>,
-    sheet: Option<Sheet>,
-    frame: u8,
-    position: Point,
     rhb: Option<RedHatBoy>,
 }
 
 impl WalkTheDog {
     pub fn new() -> Self {
         Self {
-            image: None,
-            sheet: None,
-            frame: 0,
-            position: Point { x: 0, y: 0 },
             rhb: None,
         }
     }
@@ -46,10 +38,6 @@ impl Game for WalkTheDog {
         let image = Some(engine::load_image("/assets/rhb.png").await?);
 
         Ok(Box::new(WalkTheDog {
-            image: image.clone(),
-            sheet: sheet.clone(),
-            frame: self.frame,
-            position: self.position,
             rhb: Some(RedHatBoy::new(
                 sheet.clone().ok_or_else(|| anyhow!("No Sheet Present"))?,
                 image.clone().ok_or_else(|| anyhow!("No Image Present"))?,
@@ -67,49 +55,21 @@ impl Game for WalkTheDog {
         }
         if keystate.is_pressed("ArrowRight") {
             velocity.x += 3;
+            self.rhb.as_mut().unwrap().run_right();
         }
         if keystate.is_pressed("ArrowLeft") {
             velocity.x -= 3;
         }
-        self.position.x += velocity.x;
-        self.position.y += velocity.y;
 
-        self.frame = if self.frame < 23 { self.frame + 1 } else { 0 };
+        self.rhb.as_mut().unwrap().update();
     }
 
     fn draw(&self, renderer: &Renderer) {
-        let current_sprite = self.frame / 3 + 1;
-        let frame_name = format!("Run ({}).png", current_sprite);
-        //context.clear_rect(0.0, 0.0, 600.0, 600.0);
-        let sprite = self
-            .sheet
-            .as_ref()
-            .and_then(|sheet| sheet.frames.get(&frame_name))
-            .expect("Cell not found");
-
         renderer.clear(&Rect {
             x: 0.0,
             y: 0.0,
             width: 600.0,
             height: 600.0,
-        });
-
-        let _ = self.image.as_ref().map(|image| {
-            renderer.draw_image(
-                image,
-                &Rect {
-                    x: sprite.frame.x.into(),
-                    y: sprite.frame.y.into(),
-                    width: sprite.frame.w.into(),
-                    height: sprite.frame.h.into(),
-                },
-                &Rect {
-                    x: self.position.x.into(),
-                    y: self.position.y.into(),
-                    width: sprite.frame.w.into(),
-                    height: sprite.frame.h.into(),
-                },
-            );
         });
 
         self.rhb.as_ref().unwrap().draw(renderer);
@@ -177,5 +137,13 @@ impl RedHatBoy {
                 height: sprite.frame.h.into(),
             },
         );
+    }
+
+    fn update(&mut self) {
+        self.state_machine = self.state_machine.update();
+    }
+
+    fn run_right(&mut self) {
+        self.state_machine = self.state_machine.transition(Event::Run);
     }
 }
