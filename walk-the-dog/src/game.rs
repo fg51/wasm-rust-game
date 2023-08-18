@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 
+use anyhow::anyhow;
 use anyhow::Result;
 
 use web_sys::HtmlImageElement;
@@ -13,11 +14,15 @@ use crate::engine::{Game, Renderer};
 use crate::engine::{KeyState, Point};
 use crate::{browser, engine};
 
+mod red_hat_boy_states;
+use red_hat_boy_states::{RedHatBoyState, RedHatBoyStateMachine};
+
 pub struct WalkTheDog {
     image: Option<HtmlImageElement>,
     sheet: Option<Sheet>,
     frame: u8,
     position: Point,
+    rhb: Option<RedHatBoy>,
 }
 
 impl WalkTheDog {
@@ -27,6 +32,7 @@ impl WalkTheDog {
             sheet: None,
             frame: 0,
             position: Point { x: 0, y: 0 },
+            rhb: None,
         }
     }
 }
@@ -34,16 +40,20 @@ impl WalkTheDog {
 #[async_trait(?Send)]
 impl Game for WalkTheDog {
     async fn initialize(&self) -> Result<Box<dyn Game>> {
-        let sheet: Sheet =
+        let sheet: Option<Sheet> =
             serde_wasm_bindgen::from_value(browser::fetch_json("/assets/rhb.json").await?)
                 .expect("Could not convert rhb.json into a Sheet structure");
-        let image = engine::load_image("/assets/rhb.png").await?;
+        let image = Some(engine::load_image("/assets/rhb.png").await?);
 
         Ok(Box::new(WalkTheDog {
-            image: Some(image),
-            sheet: Some(sheet),
+            image: image.clone(),
+            sheet: sheet.clone(),
             frame: self.frame,
             position: self.position,
+            rhb: Some(RedHatBoy::new(
+                sheet.clone().ok_or_else(|| anyhow!("No Sheet Present"))?,
+                image.clone().ok_or_else(|| anyhow!("No Image Present"))?,
+            )),
         }))
     }
 
@@ -101,10 +111,12 @@ impl Game for WalkTheDog {
                 },
             );
         });
+
+        self.rhb.as_ref().unwrap().draw(renderer);
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 struct SheetRect {
     x: i16,
     y: i16,
@@ -112,12 +124,58 @@ struct SheetRect {
     h: i16,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 struct Cell {
     frame: SheetRect,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct Sheet {
     frames: HashMap<String, Cell>,
+}
+
+pub struct RedHatBoy {
+    state_machine: RedHatBoyStateMachine,
+    sprite_sheet: Sheet,
+    image: HtmlImageElement,
+}
+
+impl RedHatBoy {
+    fn new(sheet: Sheet, image: HtmlImageElement) -> Self {
+        Self {
+            state_machine: RedHatBoyStateMachine::Idle(RedHatBoyState::new()),
+            sprite_sheet: sheet,
+            image,
+        }
+    }
+
+    fn draw(&self, renderer: &Renderer) {
+        let frame_name = format!(
+            "{} ({}).png",
+            self.state_machine.frame_name(),
+            (self.state_machine.context().frame / 3) + 1
+        );
+
+        let sprite = self
+            .sprite_sheet
+            .frames
+            .get(&frame_name)
+            .expect("Cell not found");
+
+        renderer.draw_image(
+            &self.image,
+            &Rect {
+                x: sprite.frame.x.into(),
+                y: sprite.frame.y.into(),
+                width: sprite.frame.w.into(),
+                height: sprite.frame.h.into(),
+            },
+            &Rect {
+                x: self.state_machine.context().position.x.into(),
+                y: self.state_machine.context().position.y.into(),
+                width: sprite.frame.w.into(),
+                height: sprite.frame.h.into(),
+            },
+        );
+    }
 }
